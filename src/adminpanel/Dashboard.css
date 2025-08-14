@@ -1,0 +1,107 @@
+/* Dashboard.css */
+.dashboard {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.stat-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: white;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+
+.icon-container {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-bg {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.stock-alert-item {
+  background: #fff8f8;
+  border-radius: 8px;
+  padding: 12px;
+  flex-grow: 1;
+}
+
+.stock-alert-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.table thead th {
+  font-weight: 600;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-top: none;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.03);
+}
+
+.progress {
+  border-radius: 4px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+  }
+  
+  .stat-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .stat-card .text-muted {
+    font-size: 0.9rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .progress {
+    width: 80px;
+  }
+}
+
+@media (max-width: 576px) {
+  .icon-container {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .icon-bg {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .stock-alert-item {
+    min-width: 100%;
+  }
+}

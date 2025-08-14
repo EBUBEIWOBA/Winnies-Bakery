@@ -1,0 +1,71 @@
+/* Contact Page Styles */
+.contact-page {
+  min-height: calc(100vh - 120px);
+}
+
+.contact-info {
+  background-color: #fff;
+  height: 100%;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.icon-box {
+  width: 40px;
+  height: 40px;
+  background-color: #FF6B01;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.contact-icon {
+  font-size: 1.1rem;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .contact-page {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .contact-info {
+    padding: 1.25rem !important;
+  }
+
+  .contact-item {
+    gap: 0.75rem;
+  }
+
+  .icon-box {
+    width: 36px;
+    height: 36px;
+  }
+
+  .contact-icon {
+    font-size: 1rem;
+  }
+
+  h2.display-5 {
+    font-size: 2rem;
+  }
+
+  .lead {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .contact-info {
+    margin-bottom: 2rem;
+  }
+}
