@@ -20,7 +20,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
-      'http://localhost:3000'
+      'http://localhost:3000',
+        'https://winnies-bakery.vercel.app'
     ];
 
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
