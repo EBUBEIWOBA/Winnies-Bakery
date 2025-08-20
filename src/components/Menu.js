@@ -21,7 +21,7 @@ const Menu = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState(new Set());
-  const [activeCategory, setActiveCategory] = useState(category || 'all');
+  const [activeCategory] = useState(category || 'all');
 
   const categories = ['Bakery', 'Food', 'Drink', 'Dessert', 'Special'];
 
