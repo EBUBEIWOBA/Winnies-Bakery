@@ -3,7 +3,7 @@ const asyncHandler = require('express-async-handler');
 const { Employee } = require('../models/Employee'); // Fixed import
 const Feedback = require('../models/Feedback');
 const MenuItem = require('../models/MenuItem');
-const StockItem = require('../models/StockModel');
+const StockItem = require('../models/stockModel');
 
 const getDashboardStats = asyncHandler(async (req, res) => {
   try {
