@@ -152,7 +152,7 @@ const loadRoutes = () => {
       stockRoutes: require('./routes/stockRoutes'),
       employeePanelRoutes: require('./routes/EmployeePanelRoutes'),
       employeeRoutes: require('./routes/EmployeeRoutes'),
-      feedbackRoutes: require('./routes/feedbackRoutes')
+      feedbackRoutes: require('./routes/FeedbackRoutes')
     };
   } catch (err) {
     console.error('❌ Failed to load routes:', err);
