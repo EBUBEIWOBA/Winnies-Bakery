@@ -101,8 +101,6 @@ const createUploadDirs = () => {
 // Database Connection
 const connectDB = async () => {
   const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 30000,

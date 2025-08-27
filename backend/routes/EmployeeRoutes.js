@@ -25,7 +25,6 @@ router.use((req, res, next) => {
 const leavesLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 30, // 30 requests/minute
-    keyGenerator: (req) => req.ip,
     handler: (req, res) => {
         res.status(429).json({
             success: false,
