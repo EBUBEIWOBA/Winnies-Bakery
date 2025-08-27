@@ -24,6 +24,7 @@ const corsOptions = {
       process.env.FRONTEND_URL               
     ].filter(Boolean);  // This removes any undefined values
 
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -132,6 +133,38 @@ const connectDB = async () => {
       // Wait 5 seconds before retrying
       await new Promise(res => setTimeout(res, 5000));
     }
+  }
+};
+
+// Auto-create admin account if it doesn't exist
+const createAdminIfNotExists = async () => {
+  try {
+    const { Employee } = require('./models/Employee');
+    const adminExists = await Employee.findOne({ 
+      email: 'admin@winnies.com', 
+      role: 'admin' 
+    });
+    
+    if (!adminExists) {
+      await Employee.create({
+        firstName: 'Admin',
+        lastName: 'User',
+        email: 'admin@winnies.com',
+        password: 'Admin@1234567', // Will be auto-hashed by pre-save hook
+        role: 'admin',
+        department: 'management',
+        phone: '+2349047911723',
+        position: 'System Administrator',
+        status: 'active',
+        isEmailVerified: true,
+        address: '123 Admin Street'
+      });
+      console.log('✅ Admin user created automatically in production');
+    } else {
+      console.log('ℹ️ Admin user already exists');
+    }
+  } catch (error) {
+    console.log('⚠️ Admin creation check:', error.message);
   }
 };
 
@@ -254,6 +287,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
+    await createAdminIfNotExists(); // Create admin after DB connection
     createUploadDirs();
 
     app.listen(PORT, () => {
