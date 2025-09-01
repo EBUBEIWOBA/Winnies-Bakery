@@ -1,4 +1,3 @@
-//routes/EmployeePanelRoutes.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -20,24 +19,41 @@ const {
   requestCorrection,
   requestLeave,
   getLeaves,
-  cancelLeaveRequest ,
+  cancelLeaveRequest,
   getSchedule,
   getUpcomingSchedule } = require('../controllers/employeePanelController');
 const asyncHandler = require('../utils/asyncHandler');
 const { authenticateEmployee } = require('../middleware/auth');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Multer setup for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../uploads/employees');
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+// Hybrid Storage Setup
+const createStorage = () => {
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    return new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'winnies-bakery/employees',
+        format: async (req, file) => 'webp',
+        public_id: (req, file) => {
+          return 'employee-' + Date.now() + '-' + Math.round(Math.random() * 1E9);
+        }
+      }
+    });
+  } else {
+    return multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '../uploads/employees');
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+      }
+    });
   }
-});
+};
 
 const fileFilter = (req, file, cb) => {
   const allowed = /jpeg|jpg|png|gif/;
@@ -51,12 +67,12 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
+  storage: createStorage(),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// Add cache-control middleware to ALL panel routes
+// Add cache-control middleware
 router.use('/panel/*', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -81,7 +97,9 @@ router.get('/panel/dashboard', authenticateEmployee, asyncHandler(getDashboard))
 router.options('/panel/profile', (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'PUT');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.status(200).end();   });
+  res.status(200).end();
+});
+
 router.get('/panel/profile', authenticateEmployee, asyncHandler(getProfile));
 router.put('/panel/profile', authenticateEmployee, upload.single('photo'), asyncHandler(updateProfile));
 
@@ -97,12 +115,13 @@ router.options('/panel/leaves', (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(200).end();
 });
+
 router.route('/panel/leaves')
   .get(authenticateEmployee, asyncHandler(getLeaves))
   .post(authenticateEmployee, asyncHandler(requestLeave));
 
 router.route('/panel/leaves/:id')
-  .delete(authenticateEmployee, asyncHandler(cancelLeaveRequest ));
+  .delete(authenticateEmployee, asyncHandler(cancelLeaveRequest));
 
 // Schedule routes
 router.get('/panel/schedules', authenticateEmployee, asyncHandler(getSchedule));

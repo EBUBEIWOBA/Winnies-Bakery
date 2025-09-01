@@ -4,25 +4,44 @@ const path = require('path');
 const fs = require('fs');
 const MenuItem = require('../models/MenuItem');
 const router = express.Router();
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/menu');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.]/g, '-');
-    cb(null, `${uniqueSuffix}-${sanitizedFilename}`);
+// Hybrid Storage: Cloudinary with local fallback
+const createStorage = () => {
+  // Use Cloudinary if configured, otherwise local storage
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    return new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'winnies-bakery/menu',
+        format: async (req, file) => 'webp',
+        public_id: (req, file) => {
+          return 'menu-' + Date.now() + '-' + Math.round(Math.random() * 1E9);
+        }
+      }
+    });
+  } else {
+    // Local storage fallback
+    return multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, '../uploads/menu');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.]/g, '-');
+        cb(null, `${uniqueSuffix}-${sanitizedFilename}`);
+      }
+    });
   }
-});
+};
 
 const upload = multer({
-  storage,
+  storage: createStorage(),
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -31,29 +50,29 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024
   }
 });
+
+// Helper function to get image URL
+const getImageUrl = (req, filename) => {
+  if (process.env.CLOUDINARY_CLOUD_NAME && filename) {
+    // Extract public_id from Cloudinary response if needed
+    return filename.startsWith('http') ? filename : cloudinary.url(filename);
+  } else if (filename) {
+    return `${req.protocol}://${req.get('host')}/uploads/menu/${filename}`;
+  }
+  return '';
+};
 
 // GET /api/menu - Get all menu items
 router.get('/', async (req, res) => {
   try {
     const menuItems = await MenuItem.find().sort({ category: 1, name: 1 });
     
-    if (!menuItems) {
-      return res.json({
-        success: true,
-        data: [],
-        count: 0
-      });
-    }
-
-    // Add full image URL to each item
     const itemsWithImageUrls = menuItems.map(item => {
       const itemObj = item.toObject();
-      if (itemObj.image) {
-        itemObj.imageUrl = `${req.protocol}://${req.get('host')}/uploads/menu/${itemObj.image}`;
-      }
+      itemObj.imageUrl = getImageUrl(req, itemObj.image);
       return itemObj;
     });
 
@@ -77,7 +96,6 @@ router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, description, category, price, isAvailable } = req.body;
 
-    // Validate required fields
     if (!name || !category || !price) {
       return res.status(400).json({
         success: false,
@@ -85,22 +103,23 @@ router.post('/', upload.single('image'), async (req, res) => {
       });
     }
 
+    let imageUrl = '';
+    if (req.file) {
+      imageUrl = process.env.CLOUDINARY_CLOUD_NAME ? req.file.path : req.file.filename;
+    }
+
     const newItem = new MenuItem({
       name,
       description: description || '',
       category,
       price: parseFloat(price),
-      image: req.file ? req.file.filename : '',
+      image: imageUrl,
       isAvailable: isAvailable !== 'false'
     });
 
     const savedItem = await newItem.save();
-    
-    // Add image URL to response if image was uploaded
     const responseItem = savedItem.toObject();
-    if (responseItem.image) {
-      responseItem.imageUrl = `${req.protocol}://${req.get('host')}/uploads/menu/${responseItem.image}`;
-    }
+    responseItem.imageUrl = getImageUrl(req, responseItem.image);
 
     res.status(201).json({
       success: true,
@@ -109,10 +128,10 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
   } catch (err) {
     console.error('Error creating menu item:', err);
-
+    
     // Clean up uploaded file if there was an error
-    if (req.file) {
-      fs.unlink(path.join(__dirname, '../uploads/menu', req.file.filename), () => {});
+    if (req.file && !process.env.CLOUDINARY_CLOUD_NAME) {
+      fs.unlink(req.file.path, () => {});
     }
 
     res.status(500).json({
@@ -135,15 +154,23 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    await MenuItem.findByIdAndDelete(req.params.id);
-
-    // Delete associated image file if it exists
-    if (item.image) {
+    // Delete from Cloudinary if configured
+    if (process.env.CLOUDINARY_CLOUD_NAME && item.image) {
+      try {
+        const publicId = item.image.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`winnies-bakery/menu/${publicId}`);
+      } catch (cloudinaryErr) {
+        console.error('Error deleting from Cloudinary:', cloudinaryErr);
+      }
+    } else if (item.image) {
+      // Delete local file
       const imagePath = path.join(__dirname, '../uploads/menu', item.image);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
+
+    await MenuItem.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
@@ -173,7 +200,6 @@ router.post('/:id/rate', async (req, res) => {
 
     const totalRating = item.rating * item.ratingCount + userRating;
     const newCount = item.ratingCount + 1;
-
     item.rating = totalRating / newCount;
     item.ratingCount = newCount;
 

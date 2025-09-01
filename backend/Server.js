@@ -10,8 +10,17 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const sendEmail = require('./utils/sendEmail');
 const cookieParser = require('cookie-parser');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
 process.env.TZ = 'Africa/Lagos';
 console.log('Server timezone set to:', process.env.TZ);
@@ -22,9 +31,8 @@ const corsOptions = {
       'https://winnies-bakery.vercel.app',  
       'http://localhost:3000',               
       process.env.FRONTEND_URL               
-    ].filter(Boolean);  // This removes any undefined values
+    ].filter(Boolean);
 
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -81,12 +89,11 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Serve employee images 
+// Serve static files (for local storage fallback)
 app.use('/uploads/employees', express.static(path.join(__dirname, 'uploads', 'employees')));
-// Serve menu images 
 app.use('/uploads/menu', express.static(path.join(__dirname, 'uploads', 'menu')));
 
-// Create upload directories 
+// Create upload directories for local storage fallback
 const createUploadDirs = () => {
   const baseDir = path.join(__dirname, 'uploads');
   const dirs = [
@@ -130,7 +137,6 @@ const connectDB = async () => {
         process.exit(1);
       }
 
-      // Wait 5 seconds before retrying
       await new Promise(res => setTimeout(res, 5000));
     }
   }
@@ -150,7 +156,7 @@ const createAdminIfNotExists = async () => {
         firstName: 'Admin',
         lastName: 'User',
         email: 'admin@winnies.com',
-        password: 'Admin@1234567', // Will be auto-hashed by pre-save hook
+        password: 'Admin@1234567',
         role: 'admin',
         department: 'management',
         phone: '+2349047911723',
@@ -212,6 +218,7 @@ app.get('/api/health', async (req, res) => {
       status: 'ok',
       database: 'connected',
       uptime: process.uptime(),
+      cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? 'configured' : 'not configured'
     });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });
@@ -287,13 +294,13 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
-    await createAdminIfNotExists(); // Create admin after DB connection
+    await createAdminIfNotExists();
     createUploadDirs();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`Employee images served from: ${path.join(__dirname, 'uploads', 'employees')}`);
+      console.log(`Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? 'Configured' : 'Not configured'}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);
