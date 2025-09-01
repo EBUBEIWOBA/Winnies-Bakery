@@ -29,7 +29,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'https://winnies-bakery.vercel.app',  
-      'http://localhost:3000',               
+      'http://localhost:3000', 
+      'hhttps://winnies-bakery-backend.onrender.com',            
       process.env.FRONTEND_URL               
     ].filter(Boolean);
 
