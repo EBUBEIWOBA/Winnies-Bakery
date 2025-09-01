@@ -29,3 +29,7 @@ src/.env
 .env
 backend/.env
 .env
+src/.env
+src/.env.local
+src/.env.development
+src/.env.production
