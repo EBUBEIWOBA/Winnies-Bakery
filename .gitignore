@@ -26,3 +26,4 @@ uploads/
 backend/.env
 src/.env
 .env
+.env
